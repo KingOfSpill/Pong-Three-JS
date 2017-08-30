@@ -19,7 +19,7 @@ var leftPaddleVelocity = 0;
 var rightPaddle;
 var rightPaddleVelocity = 0;
 
-var ballMoving = true;
+var ballCanMove = true;
 
 function init(){
 
@@ -90,7 +90,7 @@ function render(){
 
 	handleInput();
 
-	if( ballMoving )
+	if( ballCanMove )
 		updateBall();
 
 	renderer.render( scene, camera );
@@ -138,13 +138,13 @@ function updateBall(){
 
 function resetBall(){
 
-	ballMoving = false;
+	ballCanMove = false;
 
 	ballZVelocity = 0;
 	ball.position.x = 0;
 	ball.position.z = 0;
 
-	setTimeout(function(){ballMoving = true;}, 3000);
+	setTimeout(function(){ballCanMove = true;}, 3000);
 
 }
 
