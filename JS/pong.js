@@ -20,6 +20,8 @@ var leftPaddleVelocity = 0;
 var rightPaddle;
 var rightPaddleVelocity = 0;
 
+var sideThickness = 10;
+
 function init(){
 
 	initScene();
@@ -48,7 +50,7 @@ function initArena(){
 	floor.castShadow = true;
 	scene.add( floor );
 
-	var sideGeometry = new THREE.CubeGeometry( fieldLength, 15, 10 );
+	var sideGeometry = new THREE.CubeGeometry( fieldLength, 15, sideThickness );
 	var sideMaterial = new THREE.MeshLambertMaterial({color: 0x999911})
 
 	var topSide = new THREE.Mesh( sideGeometry, sideMaterial);
@@ -128,19 +130,23 @@ function initCamera(){
 
 function render(){
 
+	renderer.render( scene, camera );
+
 	updatePaddles();
 
 	if( ballCanMove )
 		updateBall();
 
-	renderer.render( scene, camera );
 	requestAnimationFrame( render );
 
 }
 
 function updateBall(){
 
-	if( ball.position.x >= (fieldLength/2) - ballRadius ){
+	var offsetX = ballRadius;
+	var offsetZ = ballRadius + (sideThickness/2);
+
+	if( ball.position.x >= (fieldLength/2) - offsetX ){
 
 		if(  Math.abs(ball.position.z - rightPaddle.position.z) < (paddleWidth/1.5) ){
 
@@ -153,7 +159,7 @@ function updateBall(){
 
 		}
 
-	}else if( ball.position.x <= ballRadius - (fieldLength/2) ){
+	}else if( ball.position.x <= offsetX - (fieldLength/2) ){
 
 		if( Math.abs(ball.position.z - leftPaddle.position.z) < (paddleWidth/1.5) ){
 
@@ -168,7 +174,7 @@ function updateBall(){
 
 	}
 
-	if( ball.position.z >= (fieldWidth/2) - ballRadius || ball.position.z <= -(fieldWidth/2) + ballRadius )
+	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ )
 		ballZVelocity = -ballZVelocity;
 
 	ball.position.x += ballXVelocity;
@@ -198,14 +204,16 @@ function updatePaddles(){
 	updateRightPaddleVelocity();
 	updateLeftPaddleVelocity();
 
-	if( rightPaddle.position.z < -(fieldWidth/2) ){
+	var offset = (paddleWidth/2) + (sideThickness/2);
 
-		rightPaddle.position.z = -(fieldWidth/2);
+	if( rightPaddle.position.z < -(fieldWidth/2) + offset ){
+
+		rightPaddle.position.z = -(fieldWidth/2) + offset;
 		rightPaddleVelocity = 0;
 
-	}else if( rightPaddle.position.z > (fieldWidth/2) ){
+	}else if( rightPaddle.position.z > (fieldWidth/2) - offset ){
 
-		rightPaddle.position.z = (fieldWidth/2);
+		rightPaddle.position.z = (fieldWidth/2) - offset;
 		rightPaddleVelocity = 0;
 
 	}else{
@@ -214,14 +222,14 @@ function updatePaddles(){
 
 	}
 
-	if( leftPaddle.position.z < -(fieldWidth/2) ){
+	if( leftPaddle.position.z < -(fieldWidth/2) + offset ){
 
-		leftPaddle.position.z = -(fieldWidth/2);
+		leftPaddle.position.z = -(fieldWidth/2) + offset;
 		leftPaddleVelocity = 0;
 
-	}else if( leftPaddle.position.z > (fieldWidth/2) ){
+	}else if( leftPaddle.position.z > (fieldWidth/2) - offset ){
 
-		leftPaddle.position.z = (fieldWidth/2);
+		leftPaddle.position.z = (fieldWidth/2) - offset;
 		leftPaddleVelocity = 0;
 
 	}else{
