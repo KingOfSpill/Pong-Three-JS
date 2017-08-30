@@ -9,6 +9,7 @@ var ball;
 var ballXVelocity = 3;
 var ballZVelocity = 0;
 var ballRadius = 5;
+var ballCanMove = true;
 
 var paddleMaxVelocity = 6;
 var paddleWidth = 25;
@@ -18,8 +19,6 @@ var leftPaddleVelocity = 0;
 
 var rightPaddle;
 var rightPaddleVelocity = 0;
-
-var ballCanMove = true;
 
 function init(){
 
@@ -36,21 +35,58 @@ function initScene(){
 
 	scene = new THREE.Scene();
 
+	initArena();
+	initPaddles();
+	initBall();
+	initLights();
+
+}
+
+function initArena(){
+
 	var floor = new THREE.Mesh( new THREE.CubeGeometry( fieldLength, 3, fieldWidth ), new THREE.MeshLambertMaterial({color: 0x225522}) );
 	floor.castShadow = true;
 	scene.add( floor );
 
-	leftPaddle = new THREE.Mesh( new THREE.CubeGeometry( 10, 15, paddleWidth ), new THREE.MeshLambertMaterial({color: 0x222255}) );
+	var sideGeometry = new THREE.CubeGeometry( fieldLength, 15, 10 );
+	var sideMaterial = new THREE.MeshLambertMaterial({color: 0x999911})
+
+	var topSide = new THREE.Mesh( sideGeometry, sideMaterial);
+	topSide.position.x = 0;
+	topSide.position.y = 10;
+	topSide.position.z = -(fieldWidth/2);
+	topSide.castShadow = true;
+	scene.add( topSide );
+
+	var bottomSide = new THREE.Mesh( sideGeometry, sideMaterial);
+	bottomSide.position.x = 0;
+	bottomSide.position.y = 10;
+	bottomSide.position.z = (fieldWidth/2);
+	bottomSide.castShadow = true;
+	scene.add( bottomSide );
+
+}
+
+function initPaddles(){
+
+	var paddleGeometry = new THREE.CubeGeometry( 10, 15, paddleWidth );
+	var paddleMaterial = new THREE.MeshLambertMaterial({color: 0x222255});
+
+	leftPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
 	leftPaddle.position.x = -150;
 	leftPaddle.position.y = 10;
 	leftPaddle.castShadow = true;
 	scene.add( leftPaddle );
 
-	rightPaddle = new THREE.Mesh( new THREE.CubeGeometry( 10, 15, paddleWidth ), new THREE.MeshLambertMaterial({color: 0x222255}) );
+	rightPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
 	rightPaddle.position.x = 150;
 	rightPaddle.position.y = 10;
 	rightPaddle.castShadow = true;
 	scene.add( rightPaddle );
+
+}
+
+function initBall(){
 
 	ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius ), new THREE.MeshLambertMaterial({color: 0x999911}) );
 	ball.position.x = 0;
@@ -58,10 +94,14 @@ function initScene(){
 	ball.castShadow = true;
 	scene.add( ball );
 
+}
+
+function initLights(){
+
 	var spotLight = new THREE.SpotLight( 0xffffff );
 	spotLight.position.set ( 0, 150, 0 );
-	spotLight.shadowCameraNear = 20;
-	spotLight.shadowCameraFar = 500;
+	spotLight.shadow.camera.near = 20;
+	spotLight.shadow.camera.far = 500;
 	spotLight.castShadow = true;
 	scene.add( spotLight );
 
@@ -88,7 +128,7 @@ function initCamera(){
 
 function render(){
 
-	handleInput();
+	updatePaddles();
 
 	if( ballCanMove )
 		updateBall();
@@ -144,11 +184,16 @@ function resetBall(){
 	ball.position.x = 0;
 	ball.position.z = 0;
 
-	setTimeout(function(){ballCanMove = true;}, 3000);
+	setTimeout(
+		function(){
+			ballCanMove = true;
+		},
+		3000
+	);
 
 }
 
-function handleInput(){
+function updatePaddles(){
 
 	updateRightPaddleVelocity();
 	updateLeftPaddleVelocity();
