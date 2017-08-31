@@ -22,11 +22,20 @@ var rightPaddleVelocity = 0;
 
 var sideThickness = 10;
 
+var leftScore = 0;
+var rightScore = 0;
+var leftScoreText;
+var rightScoreText;
+
+var aspectRatio = 1.75;
+
 function init(){
 
 	initScene();
 	initRenderer();
 	initCamera();
+
+	updateScore( );
 
 	document.body.appendChild( renderer.domElement );
 	render();
@@ -44,13 +53,37 @@ function initScene(){
 
 }
 
+function newText( textContent, xPosition ){
+
+	var textGeometry = new THREE.TextGeometry( textContent, {
+					size: 20,
+					height: 20,
+					curveSegments: 2
+	});
+
+	textGeometry.computeBoundingBox();
+
+	var offset = -0.5 * ( textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x );
+
+	var text = new THREE.Mesh( textGeometry, new THREE.MeshLambertMaterial({color: 0x550022}) );
+	text.position.x = offset + xPosition;
+	text.position.y = 20;
+	text.position.z = -100;
+	text.rotation.x = camera.rotation.x;
+	text.castShadow = true;
+	scene.add( text );
+
+	return text;
+
+}
+
 function initArena(){
 
-	var floor = new THREE.Mesh( new THREE.CubeGeometry( fieldLength, 3, fieldWidth ), new THREE.MeshLambertMaterial({color: 0x225522}) );
+	var floor = new THREE.Mesh( new THREE.BoxGeometry( fieldLength, 3, fieldWidth ), new THREE.MeshLambertMaterial({color: 0x225522}) );
 	floor.castShadow = true;
 	scene.add( floor );
 
-	var sideGeometry = new THREE.CubeGeometry( fieldLength, 15, sideThickness );
+	var sideGeometry = new THREE.BoxGeometry( fieldLength, 15, sideThickness );
 	var sideMaterial = new THREE.MeshLambertMaterial({color: 0x999911})
 
 	var topSide = new THREE.Mesh( sideGeometry, sideMaterial);
@@ -71,7 +104,7 @@ function initArena(){
 
 function initPaddles(){
 
-	var paddleGeometry = new THREE.CubeGeometry( 10, 15, paddleWidth );
+	var paddleGeometry = new THREE.BoxGeometry( 10, 15, paddleWidth );
 	var paddleMaterial = new THREE.MeshLambertMaterial({color: 0x222255});
 
 	leftPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
@@ -91,19 +124,20 @@ function initPaddles(){
 function initBall(){
 
 	ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius ), new THREE.MeshLambertMaterial({color: 0x999911}) );
-	ball.position.x = 0;
 	ball.position.y = 10;
 	ball.castShadow = true;
 	scene.add( ball );
+
+	resetBall();
 
 }
 
 function initLights(){
 
 	var spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set ( 0, 150, 0 );
-	spotLight.shadow.camera.near = 20;
-	spotLight.shadow.camera.far = 500;
+	spotLight.position.set ( 0, 700, 0 );
+	spotLight.shadowCameraNear = 1;
+	spotLight.shadowCameraFar = 1000;
 	spotLight.castShadow = true;
 	scene.add( spotLight );
 
@@ -113,14 +147,20 @@ function initRenderer(){
 
 	renderer = new THREE.WebGLRenderer();
 	renderer.setClearColor( 0x000000, 1.0 );
-	renderer.setSize( window.innerWidth*.9, window.innerHeight*.9 );
-	renderer.shadowMap.enabled = true;
+
+	if( window.innerWidth > window.innerHeight )
+		renderer.setSize( window.innerHeight*aspectRatio*.9, window.innerHeight*.9 );
+	else
+		renderer.setSize( window.innerWidth*.9, window.innerWidth*(1/aspectRatio)*.9 );
+
+	
+	renderer.shadowMapEnabled = true;
 
 }
 
 function initCamera(){
 
-	camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+	camera = new THREE.PerspectiveCamera( 45, aspectRatio, 0.1, 1000 );
 	camera.position.x = 0;
 	camera.position.y = 250;
 	camera.position.z = 200;
@@ -141,6 +181,16 @@ function render(){
 
 }
 
+function updateScore(){
+
+	scene.remove(leftScoreText);
+	leftScoreText = newText( "Score: " + leftScore.toString(), -(fieldLength/2) );
+
+	scene.remove(rightScoreText);
+	rightScoreText = newText( "Score: " + rightScore.toString(), (fieldLength/2) );
+
+}
+
 function updateBall(){
 
 	var offsetX = ballRadius;
@@ -155,6 +205,8 @@ function updateBall(){
 
 		}else{
 
+			leftScore++;
+			updateScore();
 			resetBall();
 
 		}
@@ -168,6 +220,8 @@ function updateBall(){
 
 		}else{
 
+			rightScore++;
+			updateScore();
 			resetBall();
 
 		}
@@ -188,7 +242,7 @@ function resetBall(){
 
 	ballZVelocity = 0;
 	ball.position.x = 0;
-	ball.position.z = 0;
+	ball.position.z = (Math.random() - 0.5) * (fieldWidth - ballRadius);
 
 	setTimeout(
 		function(){
