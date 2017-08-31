@@ -21,6 +21,7 @@ var rightPaddle;
 var rightPaddleVelocity = 0;
 
 var sideThickness = 10;
+var paddleThickness = 10; 
 
 var leftScore = 0;
 var rightScore = 0;
@@ -104,7 +105,7 @@ function initArena(){
 
 function initPaddles(){
 
-	var paddleGeometry = new THREE.BoxGeometry( 10, 15, paddleWidth );
+	var paddleGeometry = new THREE.BoxGeometry( paddleThickness, 15, paddleWidth );
 	var paddleMaterial = new THREE.MeshLambertMaterial({color: 0x222255});
 
 	leftPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
@@ -193,7 +194,7 @@ function updateScore(){
 
 function updateBall(){
 
-	var offsetX = ballRadius;
+	var offsetX = ballRadius + (paddleThickness/2);
 	var offsetZ = ballRadius + (sideThickness/2);
 
 	if( ball.position.x >= (fieldLength/2) - offsetX ){
@@ -242,7 +243,7 @@ function resetBall(){
 
 	ballZVelocity = 0;
 	ball.position.x = 0;
-	ball.position.z = (Math.random() - 0.5) * (fieldWidth - ballRadius);
+	ball.position.z = (Math.random() - 0.5) * (fieldWidth - (ballRadius - (sideThickness/2)));
 
 	setTimeout(
 		function(){
