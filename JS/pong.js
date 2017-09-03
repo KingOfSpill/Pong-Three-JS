@@ -31,10 +31,37 @@ var rightScoreText;
 var aspectRatio = 1.75;
 
 var bounce;
-var mute = false;
+var cheer;
+
+var paused = false;
+var muted = false;
+var rightAIEnabled = false;
+var leftAIEnabled = false;
+var rightReactionTime = 0.1;
+
+var Controls = { 
+
+	pause:function(){
+		paused = !paused;
+	},
+
+	mute:function(){
+		muted = !muted;
+	},
+
+	rightAI:function(){
+		rightAIEnabled = !rightAIEnabled;
+	},
+
+	leftAI:function(){
+		leftAIEnabled = !leftAIEnabled;
+	},
+
+ }
 
 function init(){
 
+	initGUI();
 	initAudio();
 	initScene();
 	initRenderer();
@@ -44,6 +71,49 @@ function init(){
 
 	document.body.appendChild( renderer.domElement );
 	render();
+
+}
+
+function initGUI(){
+
+	var gui = new dat.GUI();
+
+	var pauser = gui.add( Controls, 'pause' ).name('Pause').onFinishChange( 
+		function(){
+			if(paused){
+				pauser.name('Unpause');
+			}else{
+				pauser.name('Pause');
+			}
+		}
+	);
+	var muter = gui.add( Controls, 'mute' ).name('Mute').onFinishChange( 
+		function(){
+			if(muted){
+				muter.name('Unmute');
+			}else{
+				muter.name('Mute');
+			}
+		}
+	);
+	var leftAIEnabler = gui.add( Controls, 'leftAI' ).name('Enable Left AI').onFinishChange( 
+		function(){
+			if(leftAIEnabled){
+				leftAIEnabler.name('Disable Left AI');
+			}else{
+				leftAIEnabler.name('Enable Left AI');
+			}
+		}
+	);
+	var rightAIEnabler = gui.add( Controls, 'rightAI' ).name('Enable Right AI').onFinishChange( 
+		function(){
+			if(rightAIEnabled){
+				rightAIEnabler.name('Disable Right AI');
+			}else{
+				rightAIEnabler.name('Enable Right AI');
+			}
+		}
+	);
 
 }
 
@@ -231,12 +301,15 @@ function updateBall(){
 
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (rightPaddleVelocity + ballZVelocity)/2;
-			if( !mute )
+
+			if( !muted )
 				bounce.play();
 
 		}else{
 
-			cheer.play();
+			if( !muted )
+				cheer.play();
+
 			leftScore++;
 			updateScore();
 			resetBall();
@@ -249,12 +322,14 @@ function updateBall(){
 
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (leftPaddleVelocity + ballZVelocity)/2;
-			if( !mute )
+			if( !muted )
 				bounce.play();
 
 		}else{
 
-			cheer.play();
+			if( !muted )
+				cheer.play();
+
 			rightScore++;
 			updateScore();
 			resetBall();
@@ -265,7 +340,9 @@ function updateBall(){
 
 	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ ){
 		ballZVelocity = -ballZVelocity;
-		bounce.play();
+
+		if( !muted )
+			bounce.play();
 	}
 
 	ball.position.x += ballXVelocity;
@@ -279,7 +356,7 @@ function resetBall(){
 
 	ballZVelocity = 0;
 	ball.position.x = 0;
-	ball.position.z = (Math.random() - 0.5) * (fieldWidth - (ballRadius - (sideThickness/2)));
+	ball.position.z = (Math.random() - 0.5) * (fieldWidth/2);
 
 	setTimeout(
 		function(){
@@ -297,21 +374,16 @@ function updatePaddles(){
 
 	var offset = (paddleWidth/2) + (sideThickness/2);
 
-	if( rightPaddle.position.z < -(fieldWidth/2) + offset ){
+	leftPlayerInput( offset );
 
-		rightPaddle.position.z = -(fieldWidth/2) + offset;
-		rightPaddleVelocity = 0;
+	if( rightAIEnabled )
+		rightAI( offset );
+	else
+		rightPlayerInput( offset );
 
-	}else if( rightPaddle.position.z > (fieldWidth/2) - offset ){
+}
 
-		rightPaddle.position.z = (fieldWidth/2) - offset;
-		rightPaddleVelocity = 0;
-
-	}else{
-
-		rightPaddle.position.z += rightPaddleVelocity;
-
-	}
+function leftPlayerInput( offset ){
 
 	if( leftPaddle.position.z < -(fieldWidth/2) + offset ){
 
@@ -329,6 +401,30 @@ function updatePaddles(){
 
 	}
 
+}
+
+function rightAI( offset ){
+
+	
+
+}
+
+function rightPlayerInput( offset ){
+	if( rightPaddle.position.z < -(fieldWidth/2) + offset ){
+
+		rightPaddle.position.z = -(fieldWidth/2) + offset;
+		rightPaddleVelocity = 0;
+
+	}else if( rightPaddle.position.z > (fieldWidth/2) - offset ){
+
+		rightPaddle.position.z = (fieldWidth/2) - offset;
+		rightPaddleVelocity = 0;
+
+	}else{
+
+		rightPaddle.position.z += rightPaddleVelocity;
+
+	}
 }
 
 function updateRightPaddleVelocity(){
