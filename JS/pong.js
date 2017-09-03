@@ -37,9 +37,16 @@ var paused = false;
 var muted = false;
 var rightAIEnabled = false;
 var leftAIEnabled = false;
-var rightReactionTime = 0.1;
+var leftRandomDir = 1;
+var rightRandomDir = 1;
+var leftWaiting = false;
+var rightWaiting = false;
 
 var Controls = { 
+
+	title:"",
+	leftControls:"WASD",
+	rightControls:"Arrow Keys",
 
 	pause:function(){
 		paused = !paused;
@@ -56,6 +63,8 @@ var Controls = {
 	leftAI:function(){
 		leftAIEnabled = !leftAIEnabled;
 	},
+
+	maxReactionTime: 300
 
  }
 
@@ -78,6 +87,11 @@ function initGUI(){
 
 	var gui = new dat.GUI();
 
+
+	gui.add( Controls, 'title' ).name('PONG').domElement.style.pointerEvents = "none"
+	gui.add( Controls, 'leftControls' ).name('Left Controls').domElement.style.pointerEvents = "none"
+	gui.add( Controls, 'rightControls' ).name('Right Controls').domElement.style.pointerEvents = "none"
+
 	var pauser = gui.add( Controls, 'pause' ).name('Pause').onFinishChange( 
 		function(){
 			if(paused){
@@ -96,6 +110,9 @@ function initGUI(){
 			}
 		}
 	);
+
+	gui.add( Controls, 'maxReactionTime').name('AI Reaction Time (ms)');
+
 	var leftAIEnabler = gui.add( Controls, 'leftAI' ).name('Enable Left AI').onFinishChange( 
 		function(){
 			if(leftAIEnabled){
@@ -269,10 +286,12 @@ function render(){
 
 	renderer.render( scene, camera );
 
-	updatePaddles();
+	if( !paused ){
+		updatePaddles();
 
-	if( ballCanMove )
-		updateBall();
+		if( ballCanMove )
+			updateBall();
+	}
 
 	requestAnimationFrame( render );
 
@@ -302,6 +321,15 @@ function updateBall(){
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (rightPaddleVelocity + ballZVelocity)/2;
 
+			rightWaiting = true;
+			setTimeout(
+				function(){
+					rightWaiting = false;
+					reactionTime();
+				},
+				Controls.maxReactionTime * 10
+			);
+
 			if( !muted )
 				bounce.play();
 
@@ -322,6 +350,16 @@ function updateBall(){
 
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (leftPaddleVelocity + ballZVelocity)/2;
+
+			leftWaiting = true;
+			setTimeout(
+				function(){
+					leftWaiting = false;
+					reactionTime();
+				},
+				Controls.maxReactionTime * 10
+			);
+
 			if( !muted )
 				bounce.play();
 
@@ -339,6 +377,9 @@ function updateBall(){
 	}
 
 	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ ){
+
+		reactionTime();
+
 		ballZVelocity = -ballZVelocity;
 
 		if( !muted )
@@ -358,9 +399,13 @@ function resetBall(){
 	ball.position.x = 0;
 	ball.position.z = (Math.random() - 0.5) * (fieldWidth/2);
 
+	leftWaiting = true;
+	rightWaiting = true;
+
 	setTimeout(
 		function(){
 			ballCanMove = true;
+			reactionTime();
 		},
 		3000
 	);
@@ -374,16 +419,12 @@ function updatePaddles(){
 
 	var offset = (paddleWidth/2) + (sideThickness/2);
 
-	leftPlayerInput( offset );
-
-	if( rightAIEnabled )
-		rightAI( offset );
-	else
-		rightPlayerInput( offset );
+	updateLeftPaddle( offset );
+	updateRightPaddle( offset );
 
 }
 
-function leftPlayerInput( offset ){
+function updateLeftPaddle( offset ){
 
 	if( leftPaddle.position.z < -(fieldWidth/2) + offset ){
 
@@ -403,13 +444,7 @@ function leftPlayerInput( offset ){
 
 }
 
-function rightAI( offset ){
-
-	
-
-}
-
-function rightPlayerInput( offset ){
+function updateRightPaddle( offset ){
 	if( rightPaddle.position.z < -(fieldWidth/2) + offset ){
 
 		rightPaddle.position.z = -(fieldWidth/2) + offset;
@@ -427,50 +462,136 @@ function rightPlayerInput( offset ){
 	}
 }
 
+function reactionTime(){
+
+	leftWaiting = true;
+	setTimeout(
+		function(){
+			leftWaiting = false;
+		},
+		Math.random() * Controls.maxReactionTime
+	);
+
+	rightWaiting = true;
+	setTimeout(
+		function(){
+			rightWaiting = false;
+		},
+		Math.random() * Controls.maxReactionTime
+	);	
+
+}
+
 function updateRightPaddleVelocity(){
 
-	if( Key.isDown(Key.UPARROW) ){
+	if( !rightAIEnabled ){	
+		if( Key.isDown(Key.UPARROW) ){
 
-		if( rightPaddleVelocity < 0 )
-			rightPaddleVelocity = 0;
+			if( rightPaddleVelocity < 0 )
+				rightPaddleVelocity = 0;
 
-		rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
-	}else if( Key.isDown(Key.DOWNARROW) ){
+		}else if( Key.isDown(Key.DOWNARROW) ){
 
-		if( rightPaddleVelocity > 0 )
-			rightPaddleVelocity = 0;
+			if( rightPaddleVelocity > 0 )
+				rightPaddleVelocity = 0;
 
-		rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
-	}else{
+		}else{
 
+			rightPaddleVelocity = rightPaddleVelocity/2;
+
+		}
+	}else if( !rightWaiting ){
+
+		if( ball.position.z < rightPaddle.position.z - (paddleWidth/3) ){
+
+			if( rightPaddleVelocity < 0 )
+				rightPaddleVelocity = 0;
+
+			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+
+		}else if( ball.position.z > rightPaddle.position.z + (paddleWidth/3) ){
+
+			if( rightPaddleVelocity > 0 )
+				rightPaddleVelocity = 0;
+
+			rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+
+		}else if( Math.abs(rightPaddle.position.x - ball.position.x) < 20 ){
+
+			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * rightRandomDir;
+
+		}else{
+
+			rightRandomDir =  Math.random() - 0.5;
+
+			rightPaddleVelocity = rightPaddleVelocity/2;
+
+		}
+
+	} else{
 		rightPaddleVelocity = rightPaddleVelocity/2;
-
 	}
 
 }
 
 function updateLeftPaddleVelocity(){
 
-	if( Key.isDown(Key.W) ){
+	if( !leftAIEnabled ){
 
-		if( leftPaddleVelocity < 0 )
-			leftPaddleVelocity = 0;
+		if( Key.isDown(Key.W) ){
 
-		leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			if( leftPaddleVelocity < 0 )
+				leftPaddleVelocity = 0;
 
-	}else if( Key.isDown(Key.S) ){
+			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
-		if( leftPaddleVelocity > 0 )
-			leftPaddleVelocity = 0;
+		}else if( Key.isDown(Key.S) ){
 
-		leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			if( leftPaddleVelocity > 0 )
+				leftPaddleVelocity = 0;
+
+			leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+
+		}else{
+
+			leftPaddleVelocity = leftPaddleVelocity/2;
+
+		}
+
+	}else if( !leftWaiting ){
+
+		if( ball.position.z < leftPaddle.position.z - (paddleWidth/3) ){
+
+			if( leftPaddleVelocity < 0 )
+				leftPaddleVelocity = 0;
+
+			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+
+		}else if( ball.position.z > leftPaddle.position.z + (paddleWidth/3) ){
+
+			if( leftPaddleVelocity > 0 )
+				leftPaddleVelocity = 0;
+
+			leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+
+		}else if( Math.abs(leftPaddle.position.x - ball.position.x) < 20 ){
+
+			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * leftRandomDir;
+
+		}else{
+
+			leftRandomDir =  Math.random() - 0.5;
+
+			leftPaddleVelocity = leftPaddleVelocity/2;
+
+		}
 
 	}else{
-
 		leftPaddleVelocity = leftPaddleVelocity/2;
-
 	}
 
 }
