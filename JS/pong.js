@@ -30,8 +30,12 @@ var rightScoreText;
 
 var aspectRatio = 1.75;
 
+var bounce;
+var mute = false;
+
 function init(){
 
+	initAudio();
 	initScene();
 	initRenderer();
 	initCamera();
@@ -40,6 +44,16 @@ function init(){
 
 	document.body.appendChild( renderer.domElement );
 	render();
+
+}
+
+function initAudio(){
+
+	// Found here: https://freesound.org/s/325433/
+	// Has been modified for this use
+	bounce = new Audio('Sounds/pingpongbounce.wav');
+
+	cheer = new Audio('Sounds/crowdcheer.wav');
 
 }
 
@@ -66,7 +80,7 @@ function newText( textContent, xPosition ){
 
 	var offset = -0.5 * ( textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x );
 
-	var text = new THREE.Mesh( textGeometry, new THREE.MeshLambertMaterial({color: 0x550022}) );
+	var text = new THREE.Mesh( textGeometry, new THREE.MeshLambertMaterial({color: 0x222255}) );
 	text.position.x = offset + xPosition;
 	text.position.y = 20;
 	text.position.z = -100;
@@ -142,6 +156,18 @@ function initLights(){
 	spotLight.castShadow = true;
 	scene.add( spotLight );
 
+	var spotLight = new THREE.SpotLight( 0xffffff );
+	spotLight.position.set ( -(fieldLength/2), 150, -(fieldWidth/2) );
+	spotLight.shadowCameraFar = 1000;
+	spotLight.castShadow = true;
+	scene.add( spotLight );
+
+	var spotLight = new THREE.SpotLight( 0xffffff );
+	spotLight.position.set ( (fieldLength/2), 150, -(fieldWidth/2) );
+	spotLight.shadowCameraFar = 1000;
+	spotLight.castShadow = true;
+	scene.add( spotLight );
+
 }
 
 function initRenderer(){
@@ -186,9 +212,11 @@ function updateScore(){
 
 	scene.remove(leftScoreText);
 	leftScoreText = newText( "Score: " + leftScore.toString(), -(fieldLength/2) );
+	leftScoreText.rotation.y = 0.1;
 
 	scene.remove(rightScoreText);
 	rightScoreText = newText( "Score: " + rightScore.toString(), (fieldLength/2) );
+	rightScoreText.rotation.y = -0.1;
 
 }
 
@@ -203,9 +231,12 @@ function updateBall(){
 
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (rightPaddleVelocity + ballZVelocity)/2;
+			if( !mute )
+				bounce.play();
 
 		}else{
 
+			cheer.play();
 			leftScore++;
 			updateScore();
 			resetBall();
@@ -218,9 +249,12 @@ function updateBall(){
 
 			ballXVelocity = ballXVelocity * -1;
 			ballZVelocity = (leftPaddleVelocity + ballZVelocity)/2;
+			if( !mute )
+				bounce.play();
 
 		}else{
 
+			cheer.play();
 			rightScore++;
 			updateScore();
 			resetBall();
@@ -229,8 +263,10 @@ function updateBall(){
 
 	}
 
-	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ )
+	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ ){
 		ballZVelocity = -ballZVelocity;
+		bounce.play();
+	}
 
 	ball.position.x += ballXVelocity;
 	ball.position.z += ballZVelocity;
