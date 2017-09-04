@@ -66,7 +66,7 @@ var Controls = {
 		leftAIEnabled = !leftAIEnabled;
 	},
 
-	maxReactionTime: 300,
+	maxReactionTime: 500,
 
 	winScore: 5
 
