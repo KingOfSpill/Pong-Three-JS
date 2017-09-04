@@ -42,6 +42,8 @@ var rightRandomDir = 1;
 var leftWaiting = false;
 var rightWaiting = false;
 
+var winning = false;
+
 var Controls = { 
 
 	title:"",
@@ -64,7 +66,9 @@ var Controls = {
 		leftAIEnabled = !leftAIEnabled;
 	},
 
-	maxReactionTime: 300
+	maxReactionTime: 300,
+
+	winScore: 5
 
  }
 
@@ -75,6 +79,8 @@ function init(){
 	initScene();
 	initRenderer();
 	initCamera();
+
+	resetBall();
 
 	updateScore( );
 
@@ -132,6 +138,8 @@ function initGUI(){
 		}
 	);
 
+	gui.add( Controls, 'winScore').name('Win Score');
+
 }
 
 function initAudio(){
@@ -171,6 +179,30 @@ function newText( textContent, xPosition ){
 	text.position.x = offset + xPosition;
 	text.position.y = 20;
 	text.position.z = -100;
+	text.rotation.x = camera.rotation.x;
+	text.castShadow = true;
+	scene.add( text );
+
+	return text;
+
+}
+
+function newCenterText( textContent ){
+
+	var textGeometry = new THREE.TextGeometry( textContent, {
+					size: 20,
+					height: 20,
+					curveSegments: 2
+	});
+
+	textGeometry.computeBoundingBox();
+
+	var offset = -0.5 * ( textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x );
+
+	var text = new THREE.Mesh( textGeometry, new THREE.MeshLambertMaterial({color: 0x222255}) );
+	text.position.x = offset;
+	text.position.y = 30;
+	text.position.z = 30;
 	text.rotation.x = camera.rotation.x;
 	text.castShadow = true;
 	scene.add( text );
@@ -230,14 +262,13 @@ function initBall(){
 	ball.castShadow = true;
 	scene.add( ball );
 
-	resetBall();
-
 }
 
 function initLights(){
 
 	var spotLight = new THREE.SpotLight( 0xffffff );
 	spotLight.position.set ( 0, 700, 0 );
+	spotLight.intensity = 2;
 	spotLight.shadowCameraNear = 1;
 	spotLight.shadowCameraFar = 1000;
 	spotLight.castShadow = true;
@@ -299,13 +330,43 @@ function render(){
 
 function updateScore(){
 
-	scene.remove(leftScoreText);
-	leftScoreText = newText( "Score: " + leftScore.toString(), -(fieldLength/2) );
-	leftScoreText.rotation.y = 0.1;
+	if( !winning ){
 
-	scene.remove(rightScoreText);
-	rightScoreText = newText( "Score: " + rightScore.toString(), (fieldLength/2) );
-	rightScoreText.rotation.y = -0.1;
+		if( leftScore >= Controls.winScore)
+			win("LEFT");
+		else if(rightScore >= Controls.winScore )
+			win("RIGHT");
+
+		scene.remove(leftScoreText);
+		leftScoreText = newText( "Score: " + leftScore.toString(), -(fieldLength/2) );
+		leftScoreText.rotation.y = 0.1;
+
+		scene.remove(rightScoreText);
+		rightScoreText = newText( "Score: " + rightScore.toString(), (fieldLength/2) );
+		rightScoreText.rotation.y = -0.1;
+	}
+
+}
+
+function win( winner ){
+
+	winning = true;
+	var mutewas = muted;
+	muted = true;
+
+	var numText = newCenterText( winner + " WINS!");
+	setTimeout(
+		function(){
+			muted = mutewas;
+			winning = false;
+			scene.remove(numText);
+			leftScore = 0;
+			rightScore = 0;
+			updateScore();
+			resetBall();
+		},
+		3000
+	);
 
 }
 
@@ -340,7 +401,8 @@ function updateBall(){
 
 			leftScore++;
 			updateScore();
-			resetBall();
+			if(!winning)
+				resetBall();
 
 		}
 
@@ -370,7 +432,8 @@ function updateBall(){
 
 			rightScore++;
 			updateScore();
-			resetBall();
+			if(!winning)
+				resetBall();
 
 		}
 
@@ -409,6 +472,35 @@ function resetBall(){
 		},
 		3000
 	);
+
+	countdown(3, 1000);
+
+}
+
+function countdown( num, time ){
+
+	if( num > 0 ){
+
+		var numText = newCenterText(num.toString());
+		setTimeout(
+			function(){
+				scene.remove(numText);
+				countdown(num-1, time);
+			},
+			time
+		);
+
+	}else{
+
+		var numText = newCenterText("GO!");
+		setTimeout(
+			function(){
+				scene.remove(numText);
+			},
+			time
+		);
+
+	}
 
 }
 
@@ -506,14 +598,14 @@ function updateRightPaddleVelocity(){
 		}
 	}else if( !rightWaiting ){
 
-		if( ball.position.z < rightPaddle.position.z - (paddleWidth/3) ){
+		if( ball.position.z + ballZVelocity * 2 < rightPaddle.position.z - (paddleWidth/3) ){
 
 			if( rightPaddleVelocity < 0 )
 				rightPaddleVelocity = 0;
 
 			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
-		}else if( ball.position.z > rightPaddle.position.z + (paddleWidth/3) ){
+		}else if( ball.position.z + ballZVelocity * 2 > rightPaddle.position.z + (paddleWidth/3) ){
 
 			if( rightPaddleVelocity > 0 )
 				rightPaddleVelocity = 0;
@@ -532,7 +624,7 @@ function updateRightPaddleVelocity(){
 
 		}
 
-	} else{
+	}else{
 		rightPaddleVelocity = rightPaddleVelocity/2;
 	}
 
@@ -564,14 +656,14 @@ function updateLeftPaddleVelocity(){
 
 	}else if( !leftWaiting ){
 
-		if( ball.position.z < leftPaddle.position.z - (paddleWidth/3) ){
+		if( ball.position.z + ballZVelocity * 2 < leftPaddle.position.z - (paddleWidth/3) ){
 
 			if( leftPaddleVelocity < 0 )
 				leftPaddleVelocity = 0;
 
 			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
-		}else if( ball.position.z > leftPaddle.position.z + (paddleWidth/3) ){
+		}else if( ball.position.z + ballZVelocity * 2 > leftPaddle.position.z + (paddleWidth/3) ){
 
 			if( leftPaddleVelocity > 0 )
 				leftPaddleVelocity = 0;
