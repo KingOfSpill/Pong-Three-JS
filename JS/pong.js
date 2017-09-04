@@ -46,7 +46,8 @@ var winning = false;
 
 var Controls = { 
 
-	title:"",
+	title:function(){
+	},
 	leftControls:"WASD",
 	rightControls:"Arrow Keys",
 
