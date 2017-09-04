@@ -36,7 +36,7 @@ var cheer;
 var paused = false;
 var muted = false;
 var rightAIEnabled = false;
-var leftAIEnabled = false;
+var leftAIEnabled = true;
 var leftRandomDir = 1;
 var rightRandomDir = 1;
 var leftWaiting = false;
@@ -118,7 +118,7 @@ function initGUI(){
 
 	gui.add( Controls, 'maxReactionTime').name('AI Reaction Time (ms)');
 
-	var leftAIEnabler = gui.add( Controls, 'leftAI' ).name('Enable Left AI').onFinishChange( 
+	var leftAIEnabler = gui.add( Controls, 'leftAI' ).name('Disable Left AI').onFinishChange( 
 		function(){
 			if(leftAIEnabled){
 				leftAIEnabler.name('Disable Left AI');
