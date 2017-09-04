@@ -93,7 +93,6 @@ function initGUI(){
 
 	var gui = new dat.GUI();
 
-
 	gui.add( Controls, 'title' ).name('PONG').domElement.style.pointerEvents = "none"
 	gui.add( Controls, 'leftControls' ).name('Left Controls').domElement.style.pointerEvents = "none"
 	gui.add( Controls, 'rightControls' ).name('Right Controls').domElement.style.pointerEvents = "none"
@@ -138,7 +137,7 @@ function initGUI(){
 		}
 	);
 
-	gui.add( Controls, 'winScore').name('Win Score');
+	gui.add( Controls, 'winScore').name('Win Score').min(1);
 
 }
 
@@ -166,13 +165,12 @@ function initScene(){
 function newText( textContent, xPosition ){
 
 	var textGeometry = new THREE.TextGeometry( textContent, {
-					size: 20,
-					height: 20,
-					curveSegments: 2
+		size: 20,
+		height: 20,
+		curveSegments: 2
 	});
 
 	textGeometry.computeBoundingBox();
-
 	var offset = -0.5 * ( textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x );
 
 	var text = new THREE.Mesh( textGeometry, new THREE.MeshLambertMaterial({color: 0x222255}) );
@@ -190,9 +188,9 @@ function newText( textContent, xPosition ){
 function newCenterText( textContent ){
 
 	var textGeometry = new THREE.TextGeometry( textContent, {
-					size: 20,
-					height: 20,
-					curveSegments: 2
+		size: 20,
+		height: 20,
+		curveSegments: 2
 	});
 
 	textGeometry.computeBoundingBox();
@@ -270,18 +268,6 @@ function initLights(){
 	spotLight.position.set ( 0, 700, 0 );
 	spotLight.intensity = 2;
 	spotLight.shadowCameraNear = 1;
-	spotLight.shadowCameraFar = 1000;
-	spotLight.castShadow = true;
-	scene.add( spotLight );
-
-	var spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set ( -(fieldLength/2), 150, -(fieldWidth/2) );
-	spotLight.shadowCameraFar = 1000;
-	spotLight.castShadow = true;
-	scene.add( spotLight );
-
-	var spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set ( (fieldLength/2), 150, -(fieldWidth/2) );
 	spotLight.shadowCameraFar = 1000;
 	spotLight.castShadow = true;
 	scene.add( spotLight );
