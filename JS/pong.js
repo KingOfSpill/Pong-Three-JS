@@ -585,6 +585,7 @@ function updateRightPaddleVelocity(){
 		}
 	}else if( !rightWaiting ){
 
+		// The paddle will move to align itself with the ball
 		if( ball.position.z + ballZVelocity * 2 < rightPaddle.position.z - (paddleWidth/3) ){
 
 			if( rightPaddleVelocity < 0 )
@@ -599,10 +600,12 @@ function updateRightPaddleVelocity(){
 
 			rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
+		// Once aligned, when the ball gets close, the paddle with move in a randomly chosen direction to make a shot
 		}else if( Math.abs(rightPaddle.position.x - ball.position.x) < 20 ){
 
 			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * rightRandomDir;
 
+		// If the ball is not in range, then update the random direction and slow down
 		}else{
 
 			rightRandomDir =  Math.random() - 0.5;
@@ -610,7 +613,7 @@ function updateRightPaddleVelocity(){
 			rightPaddleVelocity = rightPaddleVelocity/2;
 
 		}
-
+	// If the AI is enabled and is in the reaction time period, slow down.
 	}else{
 		rightPaddleVelocity = rightPaddleVelocity/2;
 	}
@@ -621,6 +624,7 @@ function updateLeftPaddleVelocity(){
 
 	if( !leftAIEnabled ){
 
+		
 		if( Key.isDown(Key.W) ){
 
 			if( leftPaddleVelocity < 0 )
@@ -643,6 +647,7 @@ function updateLeftPaddleVelocity(){
 
 	}else if( !leftWaiting ){
 
+		// The paddle will move to align itself with the ball
 		if( ball.position.z + ballZVelocity * 2 < leftPaddle.position.z - (paddleWidth/3) ){
 
 			if( leftPaddleVelocity < 0 )
@@ -657,10 +662,12 @@ function updateLeftPaddleVelocity(){
 
 			leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
 
+		// Once aligned, when the ball gets close, the paddle with move in a randomly chosen direction to make a shot
 		}else if( Math.abs(leftPaddle.position.x - ball.position.x) < 20 ){
 
 			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * leftRandomDir;
 
+		// If the ball is not in range, then update the random direction and slow down
 		}else{
 
 			leftRandomDir =  Math.random() - 0.5;
@@ -668,7 +675,7 @@ function updateLeftPaddleVelocity(){
 			leftPaddleVelocity = leftPaddleVelocity/2;
 
 		}
-
+	// If the AI is enabled and is in the reaction time period, slow down.
 	}else{
 		leftPaddleVelocity = leftPaddleVelocity/2;
 	}
