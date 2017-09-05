@@ -11,17 +11,10 @@ var ballZVelocity = 0;
 var ballRadius = 5;
 var ballCanMove = true;
 
-var paddleMaxVelocity = 6;
-var paddleWidth = 25;
-
-var leftPaddle;
-var leftPaddleVelocity = 0;
-
-var rightPaddle;
-var rightPaddleVelocity = 0;
+var leftPaddle = new Paddle(-150, true);
+var rightPaddle = new Paddle(150, false);
 
 var sideThickness = 10;
-var paddleThickness = 10; 
 
 var leftScore = 0;
 var rightScore = 0;
@@ -35,14 +28,31 @@ var cheer;
 
 var paused = false;
 var muted = false;
-var rightAIEnabled = false;
-var leftAIEnabled = true;
-var leftRandomDir = 1;
-var rightRandomDir = 1;
-var leftWaiting = false;
-var rightWaiting = false;
 
 var winning = false;
+
+function Paddle( xPosition, AIEnabled ){
+
+	this.maxVelocity = 6;
+	this.width = 25;
+	this.thickness = 10;
+
+	var paddleGeometry = new THREE.BoxGeometry( this.thickness, 15, this.width );
+	var paddleMaterial = new THREE.MeshLambertMaterial({color: 0x222255});
+
+	this.object = new THREE.Mesh( paddleGeometry, paddleMaterial);
+	this.object.position.x = xPosition;
+	this.object.position.y = 10;
+	this.object.castShadow = true;
+
+	this.velocity = 0;
+
+	this.AIEnabled = AIEnabled;
+	this.AIWaiting = false;
+
+	this.randomDirection = 1;
+
+}
 
 var Controls = { 
 
@@ -60,11 +70,11 @@ var Controls = {
 	},
 
 	rightAI:function(){
-		rightAIEnabled = !rightAIEnabled;
+		rightPaddle.AIEnabled = !rightPaddle.AIEnabled;
 	},
 
 	leftAI:function(){
-		leftAIEnabled = !leftAIEnabled;
+		leftPaddle.AIEnabled = !leftPaddle.AIEnabled;
 	},
 
 	maxReactionTime: 500,
@@ -121,7 +131,7 @@ function initGUI(){
 
 	var leftAIEnabler = gui.add( Controls, 'leftAI' ).name('Disable Left AI').onFinishChange( 
 		function(){
-			if(leftAIEnabled){
+			if(leftPaddle.AIEnabled){
 				leftAIEnabler.name('Disable Left AI');
 			}else{
 				leftAIEnabler.name('Enable Left AI');
@@ -130,7 +140,7 @@ function initGUI(){
 	);
 	var rightAIEnabler = gui.add( Controls, 'rightAI' ).name('Enable Right AI').onFinishChange( 
 		function(){
-			if(rightAIEnabled){
+			if(rightPaddle.AIEnabled){
 				rightAIEnabler.name('Disable Right AI');
 			}else{
 				rightAIEnabler.name('Enable Right AI');
@@ -237,20 +247,8 @@ function initArena(){
 
 function initPaddles(){
 
-	var paddleGeometry = new THREE.BoxGeometry( paddleThickness, 15, paddleWidth );
-	var paddleMaterial = new THREE.MeshLambertMaterial({color: 0x222255});
-
-	leftPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
-	leftPaddle.position.x = -150;
-	leftPaddle.position.y = 10;
-	leftPaddle.castShadow = true;
-	scene.add( leftPaddle );
-
-	rightPaddle = new THREE.Mesh( paddleGeometry, paddleMaterial);
-	rightPaddle.position.x = 150;
-	rightPaddle.position.y = 10;
-	rightPaddle.castShadow = true;
-	scene.add( rightPaddle );
+	scene.add( leftPaddle.object );
+	scene.add( rightPaddle.object );
 
 }
 
@@ -359,21 +357,22 @@ function win( winner ){
 
 function updateBall(){
 
-	var offsetX = ballRadius + (paddleThickness/2);
+	var offsetX = ballRadius + (leftPaddle.thickness/2);
 	var offsetZ = ballRadius + (sideThickness/2);
 
 	if( ball.position.x >= (fieldLength/2) - offsetX ){
 
-		if(  Math.abs(ball.position.z - rightPaddle.position.z) < (paddleWidth/1.5) ){
+		if(  Math.abs(ball.position.z - rightPaddle.object.position.z) < (rightPaddle.width/1.5) ){
 
 			ballXVelocity = ballXVelocity * -1;
-			ballZVelocity = (rightPaddleVelocity + ballZVelocity)/2;
+			ballZVelocity = (rightPaddle.velocity + ballZVelocity)/2;
 
-			rightWaiting = true;
+			rightPaddle.waiting = true;
 			setTimeout(
 				function(){
-					rightWaiting = false;
-					reactionTime();
+					rightPaddle.waiting = false;
+					reactionTime(leftPaddle);
+					reactionTime(rightPaddle);
 				},
 				Controls.maxReactionTime * 10
 			);
@@ -395,16 +394,17 @@ function updateBall(){
 
 	}else if( ball.position.x <= offsetX - (fieldLength/2) ){
 
-		if( Math.abs(ball.position.z - leftPaddle.position.z) < (paddleWidth/1.5) ){
+		if( Math.abs(ball.position.z - leftPaddle.object.position.z) < (leftPaddle.width/1.5) ){
 
 			ballXVelocity = ballXVelocity * -1;
-			ballZVelocity = (leftPaddleVelocity + ballZVelocity)/2;
+			ballZVelocity = (leftPaddle.velocity + ballZVelocity)/2;
 
-			leftWaiting = true;
+			leftPaddle.waiting = true;
 			setTimeout(
 				function(){
-					leftWaiting = false;
-					reactionTime();
+					leftPaddle.waiting = false;
+					reactionTime(leftPaddle);
+					reactionTime(rightPaddle);
 				},
 				Controls.maxReactionTime * 10
 			);
@@ -428,7 +428,8 @@ function updateBall(){
 
 	if( ball.position.z >= (fieldWidth/2) - offsetZ || ball.position.z <= -(fieldWidth/2) + offsetZ ){
 
-		reactionTime();
+		reactionTime(leftPaddle);
+		reactionTime(rightPaddle);
 
 		ballZVelocity = -ballZVelocity;
 
@@ -449,13 +450,14 @@ function resetBall(){
 	ball.position.x = 0;
 	ball.position.z = (Math.random() - 0.5) * (fieldWidth/2);
 
-	leftWaiting = true;
-	rightWaiting = true;
+	leftPaddle.waiting = true;
+	rightPaddle.waiting = true;
 
 	setTimeout(
 		function(){
 			ballCanMove = true;
-			reactionTime();
+			reactionTime(leftPaddle);
+			reactionTime(rightPaddle);
 		},
 		3000
 	);
@@ -493,191 +495,117 @@ function countdown( num, time ){
 
 function updatePaddles(){
 
-	updateRightPaddleVelocity();
-	updateLeftPaddleVelocity();
+	updatePaddleVelocity( rightPaddle, Key.UPARROW, Key.DOWNARROW );
+	updatePaddleVelocity( leftPaddle, Key.W, Key.S );
 
-	var offset = (paddleWidth/2) + (sideThickness/2);
+	var offset = (rightPaddle.width/2) + (sideThickness/2);
 
-	updateLeftPaddle( offset );
-	updateRightPaddle( offset );
+	updatePaddle( leftPaddle, offset );
+	updatePaddle( rightPaddle, offset );
 
 }
 
-function updateLeftPaddle( offset ){
+function updatePaddle( paddle, offset ){
 
-	if( leftPaddle.position.z < -(fieldWidth/2) + offset ){
+	if( paddle.object.position.z < -(fieldWidth/2) + offset ){
 
-		leftPaddle.position.z = -(fieldWidth/2) + offset;
-		leftPaddleVelocity = 0;
+		paddle.object.position.z = -(fieldWidth/2) + offset;
+		paddle.velocity = 0;
 
-	}else if( leftPaddle.position.z > (fieldWidth/2) - offset ){
+	}else if( paddle.object.position.z > (fieldWidth/2) - offset ){
 
-		leftPaddle.position.z = (fieldWidth/2) - offset;
-		leftPaddleVelocity = 0;
+		paddle.object.position.z = (fieldWidth/2) - offset;
+		paddle.velocity = 0;
 
 	}else{
 
-		leftPaddle.position.z += leftPaddleVelocity;
+		paddle.object.position.z += paddle.velocity;
 
 	}
 
 }
 
-function updateRightPaddle( offset ){
-	if( rightPaddle.position.z < -(fieldWidth/2) + offset ){
+function reactionTime( paddle ){
 
-		rightPaddle.position.z = -(fieldWidth/2) + offset;
-		rightPaddleVelocity = 0;
-
-	}else if( rightPaddle.position.z > (fieldWidth/2) - offset ){
-
-		rightPaddle.position.z = (fieldWidth/2) - offset;
-		rightPaddleVelocity = 0;
-
-	}else{
-
-		rightPaddle.position.z += rightPaddleVelocity;
-
-	}
-}
-
-function reactionTime(){
-
-	leftWaiting = true;
+	paddle.waiting = true;
 	setTimeout(
 		function(){
-			leftWaiting = false;
+			paddle.waiting = false;
 		},
 		Math.random() * Controls.maxReactionTime
 	);
 
-	rightWaiting = true;
-	setTimeout(
-		function(){
-			rightWaiting = false;
-		},
-		Math.random() * Controls.maxReactionTime
-	);	
+}
+
+function updatePaddleVelocity(paddle, upKey, downKey){
+
+	if( !paddle.AIEnabled )
+		paddleHumanControl(paddle, upKey, downKey);
+	else
+		paddleAIControl(paddle, upKey, downKey);
 
 }
 
-function updateRightPaddleVelocity(){
+function paddleHumanControl(paddle, upKey, downKey){
 
-	if( !rightAIEnabled ){	
-		if( Key.isDown(Key.UPARROW) ){
+	if( Key.isDown(upKey) ){
 
-			if( rightPaddleVelocity < 0 )
-				rightPaddleVelocity = 0;
+		if( paddle.velocity < 0 )
+			paddle.velocity = 0;
 
-			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+		paddle.velocity = paddle.velocity + ( Math.abs(paddle.velocity) - Math.abs(paddle.maxVelocity) )/2;
 
-		}else if( Key.isDown(Key.DOWNARROW) ){
+	}else if( Key.isDown(downKey) ){
 
-			if( rightPaddleVelocity > 0 )
-				rightPaddleVelocity = 0;
+		if( paddle.velocity > 0 )
+			paddle.velocity = 0;
 
-			rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+		paddle.velocity = paddle.velocity - ( Math.abs(paddle.velocity) - Math.abs(paddle.maxVelocity) )/2;
 
-		}else{
-
-			rightPaddleVelocity = rightPaddleVelocity/2;
-
-		}
-	}else if( !rightWaiting ){
-
-		// The paddle will move to align itself with the ball
-		if( ball.position.z + ballZVelocity * 2 < rightPaddle.position.z - (paddleWidth/3) ){
-
-			if( rightPaddleVelocity < 0 )
-				rightPaddleVelocity = 0;
-
-			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
-
-		}else if( ball.position.z + ballZVelocity * 2 > rightPaddle.position.z + (paddleWidth/3) ){
-
-			if( rightPaddleVelocity > 0 )
-				rightPaddleVelocity = 0;
-
-			rightPaddleVelocity = rightPaddleVelocity - ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
-
-		// Once aligned, when the ball gets close, the paddle with move in a randomly chosen direction to make a shot
-		}else if( Math.abs(rightPaddle.position.x - ball.position.x) < 20 ){
-
-			rightPaddleVelocity = rightPaddleVelocity + ( Math.abs(rightPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * rightRandomDir;
-
-		// If the ball is not in range, then update the random direction and slow down
-		}else{
-
-			rightRandomDir =  Math.random() - 0.5;
-
-			rightPaddleVelocity = rightPaddleVelocity/2;
-
-		}
-	// If the AI is enabled and is in the reaction time period, slow down.
 	}else{
-		rightPaddleVelocity = rightPaddleVelocity/2;
+
+		paddle.velocity = paddle.velocity/2;
+
 	}
 
 }
 
-function updateLeftPaddleVelocity(){
+function paddleAIControl(paddle, upKey, downKey){
 
-	if( !leftAIEnabled ){
-
-		
-		if( Key.isDown(Key.W) ){
-
-			if( leftPaddleVelocity < 0 )
-				leftPaddleVelocity = 0;
-
-			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
-
-		}else if( Key.isDown(Key.S) ){
-
-			if( leftPaddleVelocity > 0 )
-				leftPaddleVelocity = 0;
-
-			leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
-
-		}else{
-
-			leftPaddleVelocity = leftPaddleVelocity/2;
-
-		}
-
-	}else if( !leftWaiting ){
+	if( !paddle.waiting ){
 
 		// The paddle will move to align itself with the ball
-		if( ball.position.z + ballZVelocity * 2 < leftPaddle.position.z - (paddleWidth/3) ){
+		if( ball.position.z + ballZVelocity * 2 < paddle.object.position.z - (paddle.width/3) ){
 
-			if( leftPaddleVelocity < 0 )
-				leftPaddleVelocity = 0;
+			if( paddle.velocity < 0 )
+				paddle.velocity = 0;
 
-			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			paddle.velocity = paddle.velocity + ( Math.abs(paddle.velocity) - Math.abs(paddle.maxVelocity) )/2;
 
-		}else if( ball.position.z + ballZVelocity * 2 > leftPaddle.position.z + (paddleWidth/3) ){
+		}else if( ball.position.z + ballZVelocity * 2 > paddle.object.position.z + (paddle.width/3) ){
 
-			if( leftPaddleVelocity > 0 )
-				leftPaddleVelocity = 0;
+			if( paddle.velocity > 0 )
+				paddle.velocity = 0;
 
-			leftPaddleVelocity = leftPaddleVelocity - ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2;
+			paddle.velocity = paddle.velocity - ( Math.abs(paddle.velocity) - Math.abs(paddle.maxVelocity) )/2;
 
 		// Once aligned, when the ball gets close, the paddle with move in a randomly chosen direction to make a shot
-		}else if( Math.abs(leftPaddle.position.x - ball.position.x) < 20 ){
+		}else if( Math.abs(paddle.object.position.x - ball.position.x) < 20 ){
 
-			leftPaddleVelocity = leftPaddleVelocity + ( Math.abs(leftPaddleVelocity) - Math.abs(paddleMaxVelocity) )/2 * leftRandomDir;
+			paddle.velocity = paddle.velocity + ( Math.abs(paddle.velocity) - Math.abs(paddle.maxVelocity) )/2 * paddle.randomDirection;
 
 		// If the ball is not in range, then update the random direction and slow down
 		}else{
 
-			leftRandomDir =  Math.random() - 0.5;
+			paddle.randomDirection =  Math.random() - 0.5;
 
-			leftPaddleVelocity = leftPaddleVelocity/2;
+			paddle.velocity = paddle.velocity/2;
 
 		}
+
 	// If the AI is enabled and is in the reaction time period, slow down.
 	}else{
-		leftPaddleVelocity = leftPaddleVelocity/2;
+		paddle.velocity = paddle.velocity/2;
 	}
 
 }
